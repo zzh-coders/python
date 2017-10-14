@@ -12,11 +12,22 @@ class MeiTu():
         self.headers = {'User-Agent': "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24"}
 
     def all_page(self, type_path, url):
+        if type_path == "每日更新":
+            self.all_url(type_path, url)
+            return True
+
         html = self.request(url)  ##调用request函数把套图地址传进去会返回给我们一个response
-        max_page = BeautifulSoup(html.text, 'lxml').find('div', class_='nav-links').find_all('a', class_='page-numbers')[-2].get_text()
-        for page in range(1, int(max_page) + 1):
-            page_url = href + 'page/' + str(page)
-            self.all_url(type_path, page_url)
+        if type_path == "妹子自拍":
+            max_page = BeautifulSoup(html.text, 'lxml').find('div', class_='pagenavi-cm').find_all('span')[-1].get_text()
+            for page in range(1, int(max_page) + 1):
+                page_url = href + '/comment-page-' + str(page) + '/#comments'
+                self.current_num += 1
+                self.img_zipai(type_path, page_url)
+        else:
+            max_page = BeautifulSoup(html.text, 'lxml').find('div', class_='nav-links').find_all('a', class_='page-numbers')[-2].get_text()
+            for page in range(1, int(max_page) + 1):
+                page_url = href + 'page/' + str(page)
+                self.all_url(type_path, page_url)
 
     def all_url(self, type_path, url):
         html = self.request(url)  ##调用request函数把套图地址传进去会返回给我们一个response
@@ -42,6 +53,16 @@ class MeiTu():
             page_url = href + '/' + str(page)
             self.current_num += 1
             self.img(type_path, path, page_url)  ##调用img函数
+
+    def img_zipai(self, type_path, page_url):
+        img_html = self.request(page_url)
+        if img_html is None:
+            return False
+        li_list = BeautifulSoup(img_html.text, 'lxml').find('div', class_='comments').find_all('li')
+        for li in li_list:
+            img_url = li.find('img')['src']
+            path = li.find('img')['alt']
+            self.save(type_path, path, img_url)
 
     def img(self, type_path, path, page_url):  ##这个函数处理图片页面地址获得图片的实际地址
         if self.current_num > self.max_num_sleep:
@@ -103,8 +124,6 @@ all_li = BeautifulSoup(html.text, 'lxml').find('ul', class_='menu').find_all('li
 for li in all_li:
     a = li.find('a')
     title = a.get_text()
-    if title == "每日更新":
-        continue
     path = str(title).replace("?", '_')  ##我注意到有个标题带有 ？  这个符号Windows系统是不能创建文件夹的所以要替换掉
     href = a['href']
     meitu.all_page(path, href)  ##调用html函数把href参数传递过去！href是啥还记的吧？ 就是套图的地址哦！！不要迷糊了哦！
